@@ -1,0 +1,52 @@
+/* Fuente base */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #fffaf7;
+    color: #333;
+}
+
+/* Encabezado */
+header {
+    background-color: #E2725B !important;
+}
+
+header nav a {
+    transition: color 0.3s ease;
+    color: white !important;
+}
+
+header nav a:hover {
+    color: #ffe3d8 !important;
+}
+
+/* Botón personalizado */
+.btn-terra {
+    background-color: #E2725B;
+    color: white;
+    border: none;
+}
+
+.btn-terra:hover {
+    background-color: #c55e49;
+    color: white;
+}
+
+/* Pie de página */
+footer {
+    background-color: #61291f;
+    color: white;
+}
+
+/* Ajustes generales */
+h1, h2, h3, h4, h5 {
+    color: #61291f;
+}
+
+input, textarea, select {
+    border-radius: 5px;
+    border-color: #ccc;
+}
+
+.table th, .table td {
+    vertical-align: middle;
+}

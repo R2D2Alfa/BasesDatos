@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background-color: #f8f9fa;
+    }
+    main {
+      flex: 1;
+    }
+    header, footer {
+      background-color: #E2725B;
+      color: #fff;
+    }
+    #profileContainer img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="py-3">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <div id="profileContainer"></div>
+        <a href="/" class="text-decoration-none text-white ms-3">
+          <h1 class="h4 mb-0">Tienda de Muebles</h1>
+        </a>
+      </div>
+      <nav class="d-flex align-items-center">
+        <a href="/search" class="me-3 text-decoration-none text-white">Buscar</a>
+        <a href="/about" class="me-3 text-decoration-none text-white">Acerca de Nosotros</a>
+        <a href="/cart" class="me-3 text-decoration-none text-white">Carrito</a>
+        <div id="loginOrProfile"></div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Script para actualizar el HEADER -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      fetch('/api/session')
+        .then(response => response.json())
+        .then(data => {
+          const profileContainer = document.getElementById('profileContainer');
+          const loginOrProfile = document.getElementById('loginOrProfile');
+          if (data.user) {
+            profileContainer.innerHTML = "";
+            const linkPerfil = document.createElement('a');
+            linkPerfil.href = '/profile';
+            const imgPerfil = document.createElement('img');
+            imgPerfil.src = data.user.profileImage || '/images/profile.png';
+            imgPerfil.alt = "Perfil";
+            linkPerfil.appendChild(imgPerfil);
+            profileContainer.appendChild(linkPerfil);
+            loginOrProfile.innerHTML = "";
+          } else {
+            loginOrProfile.innerHTML = "";
+            const loginLink = document.createElement('a');
+            loginLink.href = '/login';
+            loginLink.className = 'text-decoration-none text-white';
+            loginLink.textContent = 'Iniciar Sesión';
+            loginOrProfile.appendChild(loginLink);
+          }
+        })
+        .catch(err => console.error('Error al consultar la sesión:', err));
+    });
+  </script>
+
+  <!-- MAIN -->
+  <main class="container my-5">
+    <h2>Resumen del Pedido</h2>
+    <!-- Aquí se carga dinámicamente el resumen del carrito desde el servidor -->
+    <div id="orderSummary" class="mb-4">
+      <p>Cargando productos desde el carrito...</p>
+    </div>
+
+    <h2>Información de Pago</h2>
+    <form id="checkoutForm">
+      <!-- Datos de tarjeta -->
+      <div class="mb-3">
+        <label for="cardNumber" class="form-label">Número de Tarjeta</label>
+        <input type="text" id="cardNumber" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label for="expiry" class="form-label">Fecha de Vencimiento (MM/AA)</label>
+        <input type="text" id="expiry" class="form-control" placeholder="MM/AA" required>
+      </div>
+      <div class="mb-3">
+        <label for="cvv" class="form-label">CVV</label>
+        <input type="text" id="cvv" class="form-control" required>
+      </div>
+      <!-- Datos adicionales para la venta -->
+      <div class="mb-3">
+        <label for="employeeNumber" class="form-label">Número de Empleado que te ayudó</label>
+        <input type="text" id="employeeNumber" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label for="branchNumber" class="form-label">Número de Sucursal</label>
+        <input type="text" id="branchNumber" class="form-control" required>
+      </div>
+      <button type="submit" class="btn btn-success">Confirmar Pedido</button>
+    </form>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-4 text-center">
+    <p>&copy; 2025 Tienda de Muebles</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Script para manejar el checkout y mostrar el resumen del pedido -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const orderSummaryDiv = document.getElementById('orderSummary');
+      
+      // Usar fetch para obtener el carrito desde el servidor
+      fetch('/api/cart')
+      .then(response => response.json())
+      .then(data => {
+        const items = data.items; // data.items viene desde req.session.cart en cart.js
+        if (!items || items.length === 0) {
+          orderSummaryDiv.innerHTML = '<p>El carrito está vacío.</p>';
+        } else {
+          let html = '<ul class="list-group">';
+          items.forEach(item => {
+            // Cada item tiene { producto, cantidad }
+            html += `<li class="list-group-item">
+                      ${item.producto.nombre} - $${item.producto.precio_venta} x ${item.cantidad} unidad(es)
+                     </li>`;
+          });
+          html += '</ul>';
+          orderSummaryDiv.innerHTML = html;
+        }
+      })
+      .catch(err => {
+        console.error('Error cargando el carrito:', err);
+        orderSummaryDiv.innerHTML = '<p>Error al cargar el carrito.</p>';
+      });
+      
+      // Manejar el envío del formulario de checkout
+      document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Primero obtenemos los items del carrito del servidor para asegurar la consistencia
+        fetch('/api/cart')
+        .then(response => response.json())
+        .then(data => {
+          const itemsData = data.items || [];
+          if(itemsData.length === 0) {
+            alert('El carrito está vacío.');
+            return;
+          }
+          
+          // Preparamos el payload. Convertimos los items al formato mínimo requerido:
+          // { articulo_id, cantidad }
+          const payloadItems = itemsData.map(item => ({
+            articulo_id: item.producto.articulo_id,
+            cantidad: item.cantidad
+          }));
+          
+          const payload = {
+            items: payloadItems,
+            paymentInfo: {
+              cardNumber: document.getElementById('cardNumber').value,
+              expiry: document.getElementById('expiry').value,
+              cvv: document.getElementById('cvv').value,
+              employeeNumber: document.getElementById('employeeNumber').value,
+              branchNumber: document.getElementById('branchNumber').value
+            }
+          };
+          
+          fetch('/api/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+          .then(response => response.json())
+          .then(data => {
+            if(data.success) {
+              // Se espera que el endpoint retorne el venta_id en data.ticket (por ejemplo: data.ticket = [{ venta_id: 123 }])
+              const venta_id = data.ticket[0].venta_id;
+              // Después de confirmar el pedido, puedes limpiar el carrito, ya sea en la sesión o hacer alguna acción adicional
+              // Por ejemplo: fetch('/api/cart', { method: 'DELETE' }) para vaciar el carrito en el servidor
+              window.location.href = '/factura.html?venta_id=' + venta_id;
+            } else {
+              alert('Error en el procesamiento: ' + JSON.stringify(data.error));
+            }
+          })
+          .catch(err => {
+            console.error('Error en el checkout:', err);
+            alert('Error en el checkout, por favor intenta nuevamente.');
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Factura de Venta</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="../css/main.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background-color: #f8f9fa;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    main {
+      flex: 1;
+    }
+    header, footer {
+      background-color: #E2725B;
+      color: #fff;
+    }
+    #profileContainer img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="py-3">
+    <div class="container d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <div id="profileContainer"></div>
+        <a href="/" class="text-decoration-none text-white ms-3">
+          <h1 class="h4 mb-0">Tienda de Muebles</h1>
+        </a>
+      </div>
+      <nav class="d-flex align-items-center">
+        <a href="/search" class="me-3 text-decoration-none text-white">Buscar</a>
+        <a href="/about" class="me-3 text-decoration-none text-white">Acerca de Nosotros</a>
+        <a href="/cart" class="me-3 text-decoration-none text-white">Carrito</a>
+        <div id="loginOrProfile"></div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Script para actualizar el HEADER -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      fetch('/api/session')
+        .then(response => response.json())
+        .then(data => {
+          const profileContainer = document.getElementById('profileContainer');
+          const loginOrProfile = document.getElementById('loginOrProfile');
+          if (data.user) {
+            profileContainer.innerHTML = "";
+            const linkPerfil = document.createElement('a');
+            linkPerfil.href = '/profile';
+            const imgPerfil = document.createElement('img');
+            imgPerfil.src = data.user.profileImage || '/images/profile.png';
+            imgPerfil.alt = "Perfil";
+            linkPerfil.appendChild(imgPerfil);
+            profileContainer.appendChild(linkPerfil);
+            loginOrProfile.innerHTML = "";
+          } else {
+            loginOrProfile.innerHTML = "";
+            const loginLink = document.createElement('a');
+            loginLink.href = '/login';
+            loginLink.className = 'text-decoration-none text-white';
+            loginLink.textContent = 'Iniciar Sesión';
+            loginOrProfile.appendChild(loginLink);
+          }
+        })
+        .catch(err => console.error('Error al consultar la sesión:', err));
+    });
+  </script>
+
+  <!-- MAIN: Contenedor de la Factura -->
+  <main class="container my-5">
+    <h2>Factura de Venta</h2>
+    <div id="ticketContainer">
+      <p>Cargando factura...</p>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-4 text-center">
+    <p>&copy; 2025 Tienda de Muebles</p>
+  </footer>
+
+  <script>
+    // Al cargar la página, se extrae el parámetro venta_id y se solicita la factura al endpoint
+    document.addEventListener('DOMContentLoaded', function () {
+      const params = new URLSearchParams(window.location.search);
+      const ventaId = params.get('venta_id');
+      const ticketContainer = document.getElementById('ticketContainer');
+      
+      if (!ventaId) {
+        ticketContainer.innerHTML = '<p>Falta venta_id en la URL.</p>';
+        return;
+      }
+      
+      fetch(`/api/factura?venta_id=${ventaId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+            ticketContainer.innerHTML = `<p>${data.error}</p>`;
+          } else if (data.factura) {
+            const { header, items } = data.factura;
+            let html = `
+              <h3>Folio: ${header.folio}</h3>
+              <p>Fecha: ${header.fecha}</p>
+              <p>Cliente: ${header.cliente}</p>
+              <p>Atendido por: ${header.empleado}</p>
+              <p>Sucursal: ${header.sucursal}</p>
+              <hr>
+              <h4>Detalles de la Venta:</h4>
+              <ul class="list-group">`;
+            items.forEach(item => {
+              html += `<li class="list-group-item">
+                ${item.nombre} - $${item.precio_unitario} x ${item.cantidad} = $${item.subtotal}
+              </li>`;
+            });
+            html += `
+              </ul>
+              <hr>
+              <h4>Total Venta: $${header.total}</h4>`;
+            ticketContainer.innerHTML = html;
+          } else {
+            ticketContainer.innerHTML = '<p>No se encontró información de la factura.</p>';
+          }
+        })
+        .catch(err => {
+          console.error('Error al cargar la factura:', err);
+          ticketContainer.innerHTML = '<p>Error al cargar la factura.</p>';
+        });
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
