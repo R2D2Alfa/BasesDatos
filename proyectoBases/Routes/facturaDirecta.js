@@ -1,14 +1,15 @@
 // Routes/facturaDirecta.js
 const express = require('express');
 const router = express.Router();
-const pool = require('../config/db'); // Verifica que la ruta a tu conexión sea la correcta
+const pool = require('../config/db'); // Asegúrate de que la ruta a tu conexión es la correcta
 
-// Endpoint para obtener la factura (ticket) de una venta sin utilizar una vista SQL
-// Ejemplo: GET /api/factura?venta_id=123
-router.get('/api/factura', async (req, res) => {
+// Endpoint para obtener la factura (ticket) de una venta
+// URL final: GET /api/factura?venta_id=123
+router.get('/factura', async (req, res) => {
+  // Se extrae el parámetro venta_id de la URL
   const ventaId = req.query.venta_id;
 
-  // Verificamos que se haya enviado un venta_id y que sea numérico
+  // Verificar que se envíe un venta_id válido
   if (!ventaId || isNaN(Number(ventaId))) {
     return res.status(400).json({ error: 'Falta indicar un venta_id válido' });
   }
@@ -37,13 +38,12 @@ router.get('/api/factura', async (req, res) => {
       WHERE v.venta_id = $1
     `;
     
-    // Ejecuta la consulta pasando ventaId; se asume que la columna venta_id es numérica
     const result = await pool.query(query, [ventaId]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Factura no encontrada' });
     }
     
-    // Procesamos el resultado para separar la cabecera y los detalles
+    // Procesar los datos para separar la cabecera y los detalles de la factura
     const header = {
       venta_id: result.rows[0].venta_id,
       folio: result.rows[0].folio,
@@ -51,19 +51,19 @@ router.get('/api/factura', async (req, res) => {
       cliente: result.rows[0].cliente_nombre,
       empleado: result.rows[0].empleado_nombre,
       sucursal: result.rows[0].sucursal,
-      total: result.rows[0].total_venta
+      total: result.rows[0].total_venta,
     };
 
-    // Se asume que cada fila corresponde a un artículo vendido
-    const items = result.rows.map(row => ({
+    // Cada fila del resultado corresponde a un artículo vendido
+    const items = result.rows.map((row) => ({
       articulo_id: row.articulo_id,
       nombre: row.articulo_nombre,
       precio_unitario: row.precio_unitario,
       cantidad: row.cantidad,
-      subtotal: row.subtotal
+      subtotal: row.subtotal,
     }));
 
-    // Devolver la factura completa
+    // Devolver la factura completa en formato JSON
     res.json({ factura: { header, items } });
   } catch (err) {
     console.error('Error al obtener la factura:', err);

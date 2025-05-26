@@ -5,36 +5,44 @@ const path = require('path');
 
 const app = express();
 
-// Middleware para parsear JSON y formularios URL-encoded
+// Middlewares para parsear JSON y formularios URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuración del middleware de sesión
-app.use(session({
-  secret: 'tu_clave_secreta', // Cambia esta clave por una segura
-  resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: 1000 * 60 * 60 } // 1 hora de duración, por ejemplo
-}));
+app.use(
+  session({
+    secret: 'tu_clave_secreta', // Cambia esta clave por una segura
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: 1000 * 60 * 60 }, // 1 hora de duración, por ejemplo
+  })
+);
 
-// Servir archivos estáticos: CSS, imágenes, JS, etc.
+// Servir archivos estáticos (CSS, imágenes, JS, etc.)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Montar el router principal (ya definido, por ejemplo, en Routes/index.js)
+// Montaje de rutas:
+// 1. Rutas principales (HTML estáticos)
 const indexRouter = require('./Routes/index');
 app.use('/', indexRouter);
 
-// Montar las rutas para el carrito
+// 2. Rutas del carrito
 const cartRoutes = require('./Routes/cart');
 app.use('/api/cart', cartRoutes);
 
-// Montar las rutas de autenticación (login, logout, etc.)
+// 3. Rutas de autenticación (login, logout, etc.)
 const authRoutes = require('./Routes/auth');
-app.use('/', authRoutes);  // Nota: las rutas de login y logout se usan en la raíz
+app.use('/', authRoutes);
 
-// Montar el router de perfil, que atenderá el endpoint /api/profile (y otros, si es necesario)
+// 4. Rutas de perfil
 const profileRouter = require('./Routes/profile');
 app.use('/', profileRouter);
+
+// 5. Ruta para la factura (se recomienda agrupar todas las API bajo el prefijo '/api')
+// Esto hará que el endpoint completo sea: /api/factura?venta_id=xxx
+const facturaDirectaRoutes = require('./Routes/facturaDirecta');
+app.use('/api', facturaDirectaRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
